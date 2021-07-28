@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using shop.Data;
@@ -8,23 +9,25 @@ using shop.Models;
 
 namespace shop.Controllers
 {
-        [Route("products")]
-        public class ProductController : ControllerBase
+    [Route("products")]
+    public class ProductController : ControllerBase
+    {
+        [HttpGet]
+        [Route("")]
+        [AllowAnonymous]
+        public async Task<ActionResult<List<Product>>> Get([FromServices] DataContext context)
         {
-            [HttpGet]
-            [Route("")] 
-            public async Task<ActionResult<List<Product>>> Get([FromServices] DataContext context)
-            {
-                var products = await context
-                    .Products
-                    .Include(x => x.Category)
-                    .AsNoTracking()
-                    .ToListAsync();
-                return products;
-            }
+            var products = await context
+                .Products
+                .Include(x => x.Category)
+                .AsNoTracking()
+                .ToListAsync();
+            return products;
+        }
 
         [HttpGet]
         [Route("{id:int}")]
+        [AllowAnonymous]
         public async Task<ActionResult<Product>> GetById([FromServices] DataContext context, int id)
         {
             var product = await context
@@ -37,7 +40,11 @@ namespace shop.Controllers
 
         [HttpGet]//products/categories/1
         [Route("categories/{id:int}")]
-        public async Task<ActionResult<List<Product>>> GetByCategory([FromServices] DataContext context, int id)
+        [AllowAnonymous]
+        public async Task<ActionResult<List<Product>>> GetByCategory(
+            [FromServices] DataContext context,
+             int id
+            )
         {
             var products = await context
                 .Products
@@ -50,6 +57,7 @@ namespace shop.Controllers
 
         [HttpPost]
         [Route("")]
+        [Authorize(Roles = "employee")]
         public async Task<ActionResult<Product>> Post(
             [FromServices] DataContext context,
             [FromBody] Product model

@@ -1,58 +1,65 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using shop.Data;
 using shop.Models;
 
-[Route("categories")]    
+[Route("v1/categories")]
 public class CategoryController : ControllerBase
 {
     [HttpGet]
     [Route("")]
+    [AllowAnonymous]
+    [ResponseCache(VaryByHeader = "User-agent", Location = ResponseCacheLocation.Any, Duration = 30)]
     public async Task<ActionResult<List<Category>>> Get(
         [FromServices] DataContext context
     )
     {
         var categories = await context.Categories.AsNoTracking().ToListAsync();
-            return categories;
+        return categories;
     }
 
     [HttpGet]
     [Route("{id:int}")]
+    [AllowAnonymous]
     public async Task<ActionResult<Category>> GetById(
         int id,
         [FromServices] DataContext context
         )
     {
         var category = await context.Categories.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
-            return category;
+        return category;
     }
-    
+
     [HttpPost]
     [Route("")]
+    [Authorize(Roles = "employee")]
     public async Task<ActionResult<List<Category>>> Post(
-        [FromBody]Category model,
+        [FromBody] Category model,
         [FromServices] DataContext context
         )
     {
-        try{
-        if(!ModelState.IsValid) 
-            return BadRequest(ModelState);
-        
-        context.Categories.Add(model);
-        await context.SaveChangesAsync();
-        return Ok(model);
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            context.Categories.Add(model);
+            await context.SaveChangesAsync();
+            return Ok(model);
         }
         catch (Exception)
         {
-            return BadRequest(new{message = "Não foi possível criar a categoria" });
+            return BadRequest(new { message = "Não foi possível criar a categoria" });
         }
     }
 
     [HttpPut]
     [Route("{id:int}")]
+    [Authorize(Roles = "employee")]
     public async Task<ActionResult<List<Category>>> Put(
         int id,
         [FromBody] Category model,
@@ -60,11 +67,11 @@ public class CategoryController : ControllerBase
         )
     {
         //Verifica se o id informado é o mesmo do modelo
-        if(id != model.Id) return NotFound(new{message = "categoria não encontrada"});
+        if (id != model.Id) return NotFound(new { message = "categoria não encontrada" });
 
         //verifica se os dados são validos
-        if(!ModelState.IsValid) return BadRequest(ModelState);
-        
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
         try
         {
             context.Entry<Category>(model).State = EntityState.Modified;
@@ -77,30 +84,31 @@ public class CategoryController : ControllerBase
         }
         catch (Exception)
         {
-            return BadRequest(new { message = "Não foi possível atualizar a categoria "});
+            return BadRequest(new { message = "Não foi possível atualizar a categoria " });
         }
     }
-    
+
     [HttpDelete]
     [Route("{id:int}")]
+    [Authorize(Roles = "employee")]
     public async Task<ActionResult<List<Category>>> Delete(
         int id,
         [FromServices] DataContext context
     )
     {
         var category = await context.Categories.FirstOrDefaultAsync(x => x.Id == id);
-            if (category == null)
-                return NotFound(new { message = "Categoria não encontrada" });
-        
+        if (category == null)
+            return NotFound(new { message = "Categoria não encontrada" });
+
         try
         {
             context.Categories.Remove(category);
             await context.SaveChangesAsync();
             return Ok(new { message = "Categoria removida com sucesso" });
         }
-        catch (Exception) 
+        catch (Exception)
         {
-            return BadRequest(new { message = "Não foi possível remover a categoria"});
+            return BadRequest(new { message = "Não foi possível remover a categoria" });
         }
     }
 }
